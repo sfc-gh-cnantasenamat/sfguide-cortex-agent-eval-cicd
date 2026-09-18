@@ -28,6 +28,7 @@ The pipeline validates your YAML, deploys both the semantic view and a new agent
 - Synthetic growth tables (`SIGNUPS`, `TOUCHPOINTS`, `USER_ACTIVITY`) in a demo schema
 - Semantic view `GROWTH_ANALYTICS_SV` with 45 metrics, 8 verified queries, in OSI format
 - Cortex Agent `GROWTH_AGENT` with a `growth_data` Analyst tool
+- Streamlit-in-Snowflake dashboard `GROWTH_ANALYTICS_APP` deployed alongside the agent
 - CI role `PM_AGENTS_CI` and service user `PM_AGENTS_CI_USER` with RSA key auth
 - A registered eval dataset (`GROWTH_AGENT_EVAL`) with 10 evaluation questions
 - A GitHub Actions workflow: `validate → deploy → eval_sv → eval → promote`
@@ -55,7 +56,8 @@ The repo has this layout:
 
 ```
 .github/workflows/deploy.yml   five-job GitHub Actions workflow
-cortex_project/                GROWTH_ANALYTICS_SV.osi.yaml, GROWTH_AGENT.agent.yaml, eval configs, manifest
+cortex_project/                GROWTH_ANALYTICS_SV.osi.yaml, GROWTH_AGENT.agent.yaml,
+                               GROWTH_ANALYTICS_APP.py, eval configs, manifest
 evals/thresholds.yaml          promotion floor scores
 requirements.txt               Python dependencies
 scripts/                       deploy.sh, eval_sv.sh, eval.sh, promote.sh, validate.py, osi_to_sv.py
@@ -71,9 +73,10 @@ The script creates:
 - Database `PM_AGENTS_DEMO` and schema `APP`
 - Three synthetic tables: `SIGNUPS`, `TOUCHPOINTS`, `USER_ACTIVITY` (populated with two years of demo data)
 - CI role `PM_AGENTS_CI` and service user `PM_AGENTS_CI_USER`
-- A file stage and file format for eval configs
+- A file stage and file format for eval configs; a `STREAMLIT_STAGE` for the dashboard
 - Eval questions table and registered dataset `GROWTH_AGENT_EVAL` (10 questions)
-- All privilege grants the CI role needs to deploy semantic views, agents, and run evaluations
+- Stored procedure `SP_RESET_EVAL_DATASETS()` (EXECUTE AS OWNER) that drops the SV eval dataset before each run, ensuring clean eval state without requiring the CI role to hold ACCOUNTADMIN-level drop rights
+- All privilege grants the CI role needs to deploy semantic views, agents, Streamlit apps, and run evaluations
 
 After the script completes you should see:
 
@@ -136,6 +139,10 @@ The semantic view has 45 metrics across three tables, 8 verified queries (VQRs) 
 
 `cortex_project/GROWTH_AGENT.agent.yaml` defines the agent model, instructions, and tools. The single tool (`growth_data`) is a `cortex_analyst_text_to_sql` tool that points at the deployed semantic view. The deploy script either creates the agent (first run) or calls `MODIFY LIVE VERSION` + `COMMIT` (all subsequent runs), which saves a new named version on the shelf without touching the currently live default.
 
+### The Streamlit dashboard
+
+`cortex_project/GROWTH_ANALYTICS_APP.py` is a Streamlit-in-Snowflake app that queries `SIGNUPS` directly and renders three charts: signups by channel (bar), revenue by plan type (pie), and a channel × month heatmap. The deploy script uploads the `.py` file to `STREAMLIT_STAGE` and runs `CREATE OR REPLACE STREAMLIT` in the same job that deploys the semantic view and agent, so the dashboard is always in sync with the latest data model.
+
 ### Eval configs
 
 `cortex_project/growth_analytics_sv.eval.yaml` — drives Cortex Analyst eval (`sql_correctness`) against the 8 VQRs.
@@ -171,7 +178,7 @@ validate → deploy_candidate → eval_sv → eval → promote
 | Job | What it does |
 |-----|-------------|
 | `validate` | Runs `scripts/validate.py`: checks the manifest, validates the OSI YAML against the Ossie spec, confirms VQRs are present. Runs on PRs too. |
-| `deploy_candidate` | Converts and deploys the semantic view; creates or updates the agent. The new agent version is `LAST` but not yet the default. |
+| `deploy_candidate` | Converts and deploys the semantic view; creates or updates the agent; uploads and deploys the Streamlit dashboard. The new agent version is `LAST` but not yet the default. |
 | `eval_sv` | Runs Cortex Analyst evaluations against the deployed SV's 8 VQRs. Fails the pipeline if `sql_correctness` is below threshold. |
 | `eval` | Runs Cortex Agent evaluations against `LAST`. Scores answer correctness, logical consistency, and tool selection accuracy. |
 | `promote` | Sets `DEFAULT_VERSION = LAST` and assigns the `production` alias. Runs only after both eval gates pass. |
@@ -253,7 +260,7 @@ Push to `main`. The pipeline runs again, evals pass, and `promote` flips the def
 <!-- ------------------------ -->
 ## Use a Git Workspace
 
-Git-backed Snowsight Workspaces let you edit the same YAML files through a browser UI and have the CI pipeline pick up your changes automatically — without installing any local tooling.
+Git-backed Snowsight Workspaces let you edit the same YAML files through a browser UI and have the CI/CD pipeline pick up your changes automatically — without installing any local tooling.
 
 ### Connect a workspace to the repo
 
@@ -282,7 +289,7 @@ Congratulations! You've successfully built a five-stage eval-gated CI/CD pipelin
 - How Cortex Agent versioning lets you accumulate candidate versions on the shelf without disrupting live traffic
 - How to use Cortex Analyst and Cortex Agent evaluations as hard CI gates that block promotion on regressions
 - How to simulate a regression and verify the gate catches it before users are affected
-- How to author YAML changes from a git-backed Snowsight Workspace and feed them directly into the CI pipeline
+- How to author YAML changes from a git-backed Snowsight Workspace and feed them directly into the CI/CD pipeline
 
 ### Related Resources
 
