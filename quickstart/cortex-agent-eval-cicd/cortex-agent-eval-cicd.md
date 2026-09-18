@@ -1,4 +1,4 @@
-author: Chanin Nantasenamat
+author: Chanin Nantasenamat, Abhinav Vadrevu
 id: cortex-agent-eval-cicd
 categories: snowflake-site:taxonomy/solution-center/certification/quickstart,snowflake-site:taxonomy/product/ai,snowflake-site:taxonomy/product/data-engineering
 language: en
