@@ -29,7 +29,7 @@ The pipeline validates your YAML, deploys both the semantic view and a new agent
 - Semantic view `GROWTH_ANALYTICS_SV` with 45 metrics, 8 verified queries, in OSI format
 - Cortex Agent `GROWTH_AGENT` with a `growth_data` Analyst tool
 - Streamlit-in-Snowflake dashboard `GROWTH_ANALYTICS_APP` deployed alongside the agent
-- CI role `PM_AGENTS_CI` and service user `PM_AGENTS_CI_USER` with RSA key auth
+- CI role `SV_EVAL_CICD_ROLE` and service user `SV_EVAL_CICD_USER` with RSA key auth
 - A registered eval dataset (`GROWTH_AGENT_EVAL`) with 10 evaluation questions
 - A GitHub Actions workflow: `validate → deploy → eval_sv → eval → promote`
 - Two companion notebooks: pre-pipeline exploration and post-pipeline inspection
@@ -71,9 +71,9 @@ sql/setup.sql                  demo objects, synthetic data, CI role, eval datas
 In a Snowsight worksheet, connected as ACCOUNTADMIN (or a role with equivalent privilege), run the full contents of `sql/setup.sql`.
 
 The script creates:
-- Database `PM_AGENTS_DEMO` and schema `APP`
+- Database `SV_EVAL_CICD` and schema `APP`
 - Three synthetic tables: `SIGNUPS`, `TOUCHPOINTS`, `USER_ACTIVITY` (populated with two years of demo data)
-- CI role `PM_AGENTS_CI` and service user `PM_AGENTS_CI_USER`
+- CI role `SV_EVAL_CICD_ROLE` and service user `SV_EVAL_CICD_USER`
 - A file stage and file format for eval configs; a `STREAMLIT_STAGE` for the dashboard
 - Eval questions table and registered dataset `GROWTH_AGENT_EVAL` (10 questions)
 - Stored procedure `SP_RESET_EVAL_DATASETS()` (EXECUTE AS OWNER) that drops the SV eval dataset before each run, ensuring clean eval state without requiring the CI role to hold ACCOUNTADMIN-level drop rights
@@ -82,7 +82,7 @@ The script creates:
 After the script completes you should see:
 
 ```
-Setup complete. Register an RSA public key on PM_AGENTS_CI_USER, then run the GitHub Action.
+Setup complete. Register an RSA public key on SV_EVAL_CICD_USER, then run the GitHub Action.
 ```
 
 <!-- ------------------------ -->
@@ -123,14 +123,14 @@ openssl rsa -in ci_rsa_key.p8 -pubout -out ci_rsa_key.pub
 Copy the body of `ci_rsa_key.pub` — everything between (but not including) the `BEGIN PUBLIC KEY` and `END PUBLIC KEY` lines — and run in Snowsight:
 
 ```sql
-ALTER USER PM_AGENTS_CI_USER SET RSA_PUBLIC_KEY = '<paste key body here>';
+ALTER USER SV_EVAL_CICD_USER SET RSA_PUBLIC_KEY = '<paste key body here>';
 ```
 
 ### Store GitHub secrets
 
 ```bash
 gh secret set SNOWFLAKE_ACCOUNT  --body "<org>-<account>"   # e.g. myorg-myaccount
-gh secret set SNOWFLAKE_USER     --body "PM_AGENTS_CI_USER"
+gh secret set SNOWFLAKE_USER     --body "SV_EVAL_CICD_USER"
 gh secret set SNOWFLAKE_PRIVATE_KEY < ci_rsa_key.p8
 ```
 
@@ -213,7 +213,7 @@ After `eval_sv` and `eval` complete, open Snowsight and navigate to **AI & ML �
 -- Semantic view eval scores
 SELECT METRIC_NAME, AVG(EVAL_AGG_SCORE) AS AVG_SCORE
 FROM TABLE(SNOWFLAKE.LOCAL.GET_ANALYST_AI_EVALUATION_DATA(
-  'PM_AGENTS_DEMO', 'APP', 'GROWTH_ANALYTICS_SV', 'CORTEX ANALYST',
+  'SV_EVAL_CICD', 'APP', 'GROWTH_ANALYTICS_SV', 'CORTEX ANALYST',
   '<run_name_from_logs>'
 ))
 GROUP BY 1;
@@ -221,7 +221,7 @@ GROUP BY 1;
 -- Agent eval scores
 SELECT METRIC_NAME, AVG(EVAL_AGG_SCORE) AS AVG_SCORE
 FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_EVALUATION_DATA(
-  'PM_AGENTS_DEMO', 'APP', 'GROWTH_AGENT', 'CORTEX AGENT',
+  'SV_EVAL_CICD', 'APP', 'GROWTH_AGENT', 'CORTEX AGENT',
   '<run_name_from_logs>'
 ))
 GROUP BY 1;
@@ -230,14 +230,14 @@ GROUP BY 1;
 After a successful run, inspect the agent versions:
 
 ```sql
-SHOW VERSIONS IN AGENT PM_AGENTS_DEMO.APP.GROWTH_AGENT;
+SHOW VERSIONS IN AGENT SV_EVAL_CICD.APP.GROWTH_AGENT;
 ```
 
 Chat with the live default:
 
 ```sql
 SELECT SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
-  'PM_AGENTS_DEMO.APP.GROWTH_AGENT!DEFAULT',
+  'SV_EVAL_CICD.APP.GROWTH_AGENT!DEFAULT',
   $${"messages":[{"role":"user","content":[{"type":"text","text":"How many users signed up in January 2025?"}]}]}$$
 );
 ```
