@@ -26,7 +26,7 @@ The pipeline validates your YAML, deploys both the semantic view and a new agent
 
 ### What You'll Build
 - Synthetic growth tables (`SIGNUPS`, `TOUCHPOINTS`, `USER_ACTIVITY`) in a demo schema
-- Semantic view `GROWTH_ANALYTICS_SV` with 45 metrics, 8 verified queries, in OSI format
+- Semantic view `GROWTH_ANALYTICS` with 45 metrics, 8 verified queries, in OSI format
 - Cortex Agent `GROWTH_AGENT` with a `growth_data` Analyst tool
 - Streamlit-in-Snowflake dashboard `GROWTH_ANALYTICS_APP` deployed alongside the agent
 - CI role `SV_EVAL_CICD_ROLE` and service user `SV_EVAL_CICD_USER` with RSA key auth
@@ -57,7 +57,7 @@ The repo has this layout:
 
 ```
 .github/workflows/deploy.yml   five-job GitHub Actions workflow
-cortex_project/                GROWTH_ANALYTICS_SV.osi.yaml, GROWTH_AGENT.agent.yaml,
+cortex_project/                GROWTH_ANALYTICS.osi.yaml, GROWTH_AGENT.agent.yaml,
                                GROWTH_ANALYTICS_APP.py, eval configs, manifest
 evals/thresholds.yaml          promotion floor scores
 requirements.txt               Python dependencies
@@ -98,7 +98,7 @@ notebook/Semantic_View_Eval_CICD/01_Explore_and_Deploy.ipynb
 
 The notebook covers:
 1. Explore the three synthetic tables and key growth metrics
-2. Deploy `GROWTH_ANALYTICS_SV` manually using SQL
+2. Deploy `GROWTH_ANALYTICS` manually using SQL
 3. Query the semantic view with natural language via Cortex Analyst
 4. Deploy `GROWTH_AGENT` manually
 5. Chat with the agent — including testing boundary enforcement with an out-of-scope question
@@ -153,7 +153,7 @@ Before triggering the pipeline, it is worth understanding what each key file doe
 
 ### The semantic view (OSI format)
 
-`cortex_project/GROWTH_ANALYTICS_SV.osi.yaml` is authored in the Open Semantic Interchange (OSI) format — a vendor-neutral schema maintained by the Apache Ossie project. The validate script (`scripts/validate.py`) uses the Apache Ossie Pydantic models to check the file against the spec before any Snowflake call is made. The deploy script converts the OSI YAML to Snowflake native format using `scripts/osi_to_sv.py` and deploys it with `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML`.
+`cortex_project/GROWTH_ANALYTICS.osi.yaml` is authored in the Open Semantic Interchange (OSI) format — a vendor-neutral schema maintained by the Apache Ossie project. The validate script (`scripts/validate.py`) uses the Apache Ossie Pydantic models to check the file against the spec before any Snowflake call is made. The deploy script converts the OSI YAML to Snowflake native format using `scripts/osi_to_sv.py` and deploys it with `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML`.
 
 The semantic view has 45 metrics across three tables, 8 verified queries (VQRs) that anchor the `sql_correctness` eval, and a SNOWFLAKE custom_extensions block that maps each metric to its source table.
 
@@ -213,7 +213,7 @@ After `eval_sv` and `eval` complete, open Snowsight and navigate to **AI & ML �
 -- Semantic view eval scores
 SELECT METRIC_NAME, AVG(EVAL_AGG_SCORE) AS AVG_SCORE
 FROM TABLE(SNOWFLAKE.LOCAL.GET_ANALYST_AI_EVALUATION_DATA(
-  'SV_EVAL_CICD', 'APP', 'GROWTH_ANALYTICS_SV', 'CORTEX ANALYST',
+  'SV_EVAL_CICD', 'APP', 'GROWTH_ANALYTICS', 'CORTEX ANALYST',
   '<run_name_from_logs>'
 ))
 GROUP BY 1;
@@ -313,7 +313,7 @@ A git-backed workspace is **private** to your user. Collaborators each connect t
 
 ### Edit and push
 
-1. Open `cortex_project/GROWTH_AGENT.agent.yaml` or `cortex_project/GROWTH_ANALYTICS_SV.osi.yaml` in the workspace editor.
+1. Open `cortex_project/GROWTH_AGENT.agent.yaml` or `cortex_project/GROWTH_ANALYTICS.osi.yaml` in the workspace editor.
 2. Make a change — for example, add a new sample question to the agent or adjust a metric description in the OSI YAML.
 3. In the left sidebar, click **Changes**, write a commit message, and click **Commit**.
 4. Click **Push** to send the commit to `main`.
