@@ -1,15 +1,15 @@
 author: Chanin Nantasenamat, Abhinav Vadrevu
-id: cortex-agent-eval-cicd
+id: semantic-view-eval-cicd
 categories: snowflake-site:taxonomy/solution-center/certification/quickstart,snowflake-site:taxonomy/product/ai,snowflake-site:taxonomy/product/data-engineering
 language: en
-summary: Build a GitHub Actions pipeline that validates, deploys, evaluates, and promotes Snowflake Cortex Agents using eval-gated versioning with Apache Ossie and Cortex evaluations.
+summary: Build a GitHub Actions pipeline that validates, deploys, evaluates, and promotes Snowflake Semantic Views and Cortex Agents using eval-gated versioning with Apache Ossie and Cortex evaluations.
 environments: web
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/sfc-gh-cnantasenamat/pm-agents
+fork repo link: https://github.com/sfc-gh-cnantasenamat/semantic-view-eval-cicd
 
 
-# Build an Eval-Gated CI/CD Pipeline for Cortex Agents
+# Build an Eval-Gated CI/CD Pipeline for Snowflake Semantic Views
 <!-- ------------------------ -->
 ## Overview
 
@@ -32,6 +32,7 @@ The pipeline validates your YAML, deploys both the semantic view and a new agent
 - CI role `PM_AGENTS_CI` and service user `PM_AGENTS_CI_USER` with RSA key auth
 - A registered eval dataset (`GROWTH_AGENT_EVAL`) with 10 evaluation questions
 - A GitHub Actions workflow: `validate → deploy → eval_sv → eval → promote`
+- Two companion notebooks: pre-pipeline exploration and post-pipeline inspection
 
 ### Prerequisites
 - Access to a [Snowflake account](https://signup.snowflake.com/?utm_source=snowflake-devrel&utm_medium=developer-guides&utm_cta=developer-guides) with Cortex Agents and Agent Evaluations enabled
@@ -43,12 +44,12 @@ The pipeline validates your YAML, deploys both the semantic view and a new agent
 <!-- ------------------------ -->
 ## Create the Repo
 
-Fork or clone [sfc-gh-cnantasenamat/pm-agents](https://github.com/sfc-gh-cnantasenamat/pm-agents) to your GitHub account, then push it to a new public repo. The repo needs at least one commit on a `main` branch before you can connect a git-backed Snowsight Workspace in a later step.
+Fork or clone [sfc-gh-cnantasenamat/semantic-view-eval-cicd](https://github.com/sfc-gh-cnantasenamat/semantic-view-eval-cicd) to your GitHub account, then push it to a new public repo. The repo needs at least one commit on a `main` branch before you can connect a git-backed Snowsight Workspace in a later step.
 
 ```bash
-git clone https://github.com/sfc-gh-cnantasenamat/pm-agents.git
-cd pm-agents
-git remote set-url origin https://github.com/<you>/pm-agents.git
+git clone https://github.com/sfc-gh-cnantasenamat/semantic-view-eval-cicd.git
+cd semantic-view-eval-cicd
+git remote set-url origin https://github.com/<you>/semantic-view-eval-cicd.git
 git push -u origin main
 ```
 
@@ -83,6 +84,27 @@ After the script completes you should see:
 ```
 Setup complete. Register an RSA public key on PM_AGENTS_CI_USER, then run the GitHub Action.
 ```
+
+<!-- ------------------------ -->
+## Explore with the Pre-Pipeline Notebook
+
+Before setting up the CI/CD pipeline, open the companion notebook to explore the demo data and walk through each step the pipeline will automate — manually, in your own Snowflake session.
+
+In Snowsight, navigate to **Projects → Notebooks** and import:
+
+```
+notebook/Semantic_View_Eval_CICD/01_Explore_and_Deploy.ipynb
+```
+
+The notebook covers:
+1. Explore the three synthetic tables and key growth metrics
+2. Deploy `GROWTH_ANALYTICS_SV` manually using SQL
+3. Query the semantic view with natural language via Cortex Analyst
+4. Deploy `GROWTH_AGENT` manually
+5. Chat with the agent — including testing boundary enforcement with an out-of-scope question
+6. Run an eval manually with `EXECUTE_AI_EVALUATION`
+
+The final cell bridges to the pipeline: once you have seen each step run manually, the CI/CD pipeline automates all of it on every push to `main`.
 
 <!-- ------------------------ -->
 ## Configure CI Auth
@@ -221,6 +243,24 @@ SELECT SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
 ```
 
 <!-- ------------------------ -->
+## Inspect Results with the Post-Pipeline Notebook
+
+After the pipeline completes successfully, open the second companion notebook to inspect what the pipeline produced.
+
+In Snowsight, navigate to **Projects → Notebooks** and import:
+
+```
+notebook/Semantic_View_Eval_CICD/02_Inspect_Pipeline_Results.ipynb
+```
+
+The notebook covers:
+1. Inspect agent versions on the shelf (`SHOW VERSIONS IN AGENT`)
+2. Query SV eval scores and visualize them against the promotion thresholds
+3. Query agent eval scores (`answer_correctness`, `logical_consistency`, `tool_selection_accuracy`) and visualize
+4. Compare scores across multiple pipeline runs
+5. Chat with the promoted default version
+
+<!-- ------------------------ -->
 ## Simulate a Regression
 
 One of the most useful things about this pipeline is that it blocks bad changes automatically. You can verify this by introducing a deliberate regression.
@@ -290,6 +330,7 @@ Congratulations! You've successfully built a five-stage eval-gated CI/CD pipelin
 - How to use Cortex Analyst and Cortex Agent evaluations as hard CI gates that block promotion on regressions
 - How to simulate a regression and verify the gate catches it before users are affected
 - How to author YAML changes from a git-backed Snowsight Workspace and feed them directly into the CI/CD pipeline
+- How to inspect eval scores and agent versions using companion notebooks
 
 ### Related Resources
 
@@ -300,6 +341,10 @@ Documentation:
 - [Git-backed Workspaces](https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces-git)
 - [Apache Ossie (Open Semantic Interchange)](https://github.com/apache/ossie)
 
+Notebooks:
+- [01 — Explore and Deploy (pre-pipeline)](https://github.com/sfc-gh-cnantasenamat/sfguide-semantic-view-eval-cicd/blob/main/notebook/Semantic_View_Eval_CICD/01_Explore_and_Deploy.ipynb)
+- [02 — Inspect Pipeline Results (post-pipeline)](https://github.com/sfc-gh-cnantasenamat/sfguide-semantic-view-eval-cicd/blob/main/notebook/Semantic_View_Eval_CICD/02_Inspect_Pipeline_Results.ipynb)
+
 Additional Reading:
 - [Getting Started with Cortex Agent Evaluations](https://www.snowflake.com/en/developers/guides/getting-started-with-cortex-agent-evaluations/)
-- [pm-agents demo repo](https://github.com/sfc-gh-cnantasenamat/pm-agents)
+- [semantic-view-eval-cicd demo repo](https://github.com/sfc-gh-cnantasenamat/semantic-view-eval-cicd)
