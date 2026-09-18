@@ -322,7 +322,7 @@ A git-backed workspace is **private** to your user. Collaborators each connect t
 <!-- ------------------------ -->
 ## Conclusion And Resources
 
-Congratulations! You've successfully built a five-stage eval-gated CI/CD pipeline for Snowflake Cortex Agents. Every push to `main` now validates the OSI semantic view against the Apache Ossie spec, deploys a candidate agent version, runs two independent quality gates, and promotes to production only when both pass — keeping your live agent stable while you iterate.
+Congratulations! You've successfully built a five-stage eval-gated CI/CD pipeline for Snowflake Semantic Views and Cortex Agents. Every push to `main` now validates the OSI semantic view against the Apache Ossie spec, deploys a candidate agent version, runs two independent quality gates, and promotes to production only when both pass — keeping your live agent stable while you iterate.
 
 ### What You Learned
 - How to model a semantic view in vendor-neutral OSI format and validate it with Apache Ossie before deploying to Snowflake
