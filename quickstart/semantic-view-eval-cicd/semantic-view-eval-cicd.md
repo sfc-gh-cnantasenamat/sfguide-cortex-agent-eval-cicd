@@ -76,7 +76,7 @@ The script creates:
 - CI role `SV_EVAL_CICD_ROLE` and service user `SV_EVAL_CICD_USER`
 - A file stage and file format for eval configs; a `STREAMLIT_STAGE` for the dashboard
 - Eval questions table and registered dataset `GROWTH_AGENT_EVAL` (10 questions)
-- Stored procedure `SP_RESET_EVAL_DATASETS()` (EXECUTE AS OWNER) that drops the SV eval dataset before each run, ensuring clean eval state without requiring the CI role to hold ACCOUNTADMIN-level drop rights
+- A helper procedure that resets eval state between CI runs, ensuring clean results each time
 - All privilege grants the CI role needs to deploy semantic views, agents, Streamlit apps, and run evaluations
 
 After the script completes you should see:
